@@ -1,0 +1,376 @@
+#add read replica instance in prd
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation Template to create Aurora Postgresql Cluster DB Instance'
+Parameters:
+  DBName:
+    Default: vishaltest
+    Description: Aurora Postgresql vishaltest RDS
+    Type: String
+    MinLength: '1'
+    MaxLength: '64'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
+  DBUsername:
+    Default: 'dbadmin'
+    NoEcho: 'true'
+    Description: Database admin account username
+    Type: String
+    MinLength: '1'
+    MaxLength: '16'
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
+  DBPassword:
+    NoEcho: 'true'
+    Description: Database admin account password
+    Type: String
+    MinLength: '8'
+    MaxLength: '41'
+    ConstraintDescription: must contain only alphanumeric characters between 8 to 41 characters.
+    Default: 'Password1'
+  DBClass:
+    Default: db.r4.large
+    Description: Database instance class
+    Type: String
+    AllowedValues:
+    - db.r4.large
+    - db.r4.xlarge
+    - db.r4.2xlarge
+    - db.r4.4xlarge
+    - db.r4.8xlarge
+    - db.r4.16xlarge
+    ConstraintDescription: must select a valid database instance type. To use Encryption, DBClass should be db.r4.large and above
+
+  DBSnapshotName:
+    Description: DB Snapshot ID to restore database
+    Type: String
+    Default: ""
+  
+  CreateReplica:
+    Default: false
+    Description: DB with Multi AZ configuration
+    Type: String
+    AllowedValues:
+    - true
+    - false
+    ConstraintDescription: Create Replica in second AZ - must be set to true or false.
+
+###########################################################################
+# Mandatory tags that will be added to all resources that support tags
+###########################################################################
+  
+  Name:
+    Type: String
+    Description: Unique friendly name as required by the your company tagging strategy document.
+    Default: 'vishal-rdsdb'
+
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - test
+      - prod
+    Description: The environment key is used to designate the production level of the associated AWS resource.
+    Default: dev
+
+  Application:
+    Type: String
+    Description: The application key is used to designate the application of the associated AWS resource. In this capacity ?application? does not refer to an installed software component, but rather the overall business application that the resource supports.
+    Default: 'vishaltest'
+    AllowedPattern: "[a-z]*"
+    ConstraintDescription: must contain only alphabetic characters in lower case.
+
+  ApplicationVersion:
+    Type: String
+    Description: The version key is used to designate the specific version of the application.  Format should be Pattern - "#.#.#"
+    Default: '1.0.0'
+
+  InfrastructureVersion:
+    Type: String
+    Description: The version key is used to designate the specific version of the underlying infrastructure.  Format should be Pattern - "#.#.#"
+    Default: '1.0.0'
+    
+  Tier:
+    Type: String
+    AllowedValues:
+      - data
+    Description: The tier key is used to designate the functional tier of the associated AWS resource.
+    Default: data
+
+  ProjectCostCenter:
+    Type: String
+    Description: The cost center key is used to designate the your company cost center associated with project of the given AWS resource.
+    Default: '1234455322'
+
+  OperatingCostCenter:
+    Type: String
+    Description: The cost center key is used to designate the your company cost center associated with operating center of the given AWS resource.
+    Default: '324343243'
+    
+  Owner:
+    Type: String
+    Description: The owner key is used to designate the your company individual associated with the given AWS resource.
+    Default: 'theepi@amazon.com'
+  
+  SecurityContact:
+    Type: String
+    Description: The owner key is used to designate the your company individual associated with the given AWS resource.
+    Default: 'theepi@amazon.com'
+    
+  Confidentiality:
+    Type: String
+    AllowedValues:
+      - public
+      - private
+      - confidential
+      - pii/phi
+    Description: The Confidentiality tag is used to designate the confidentiality classification of the data that is associated with the resource.
+    Default: pii/phi
+    
+  Compliance:
+    Type: String
+    AllowedValues:
+      - hipaa
+      - sox
+      - fips
+      - other
+      - none
+    Description: The Compliance tag is used to specific the Compliance level for the resource.
+    Default: hipaa
+
+###############################################################################
+# Parameter groups
+###############################################################################
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: Environment
+        Parameters:
+          - Environment
+      -
+        Label:
+          default: DB Parameters
+        Parameters:
+          - DBName
+          - DBUsername
+          - DBPassword
+          - DBClass
+          - DBSnapshotName
+          - CreateReplica
+      -
+        Label:
+          default: Mandatory Tags
+        Parameters:
+          - Name
+          - Application
+          - ApplicationVersion
+          - InfrastructureVersion
+          - Tier
+          - ProjectCostCenter
+          - OperatingCostCenter
+          - Owner
+          - SecurityContact
+          - Confidentiality
+          - Compliance
+    
+#### Conditions ####################################################################################################
+Conditions:
+  ## IsUseDBSnapshot: !Equals [!Ref UseDBSnapshot, 'true']
+  IsUseDBSnapshot: !Not [!Equals [!Ref DBSnapshotName, ""]]
+  IsProd: !Equals [!Ref Environment, 'prod']
+  Replica: !Equals [!Ref CreateReplica, 'true']
+####################################################################################################  
+    
+Resources:
+
+  RDSDBClusterParameterGroup:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      Description: !Join [ "-", [ "Aurora PG Cluster Parameter Group", !Ref DBName ] ]
+      Family: aurora-postgresql9.6
+      Parameters:
+        timezone: US/Eastern  
+        autovacuum_naptime: 8
+        autovacuum_max_workers: 8
+        autovacuum_vacuum_cost_limit: 4800
+        autovacuum_work_mem: 4194304
+        autovacuum_vacuum_scale_factor: 0.02
+        
+ 
+  DBParamGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: !Join [ "-", [ "Aurora PG Database Parameter Group", !Ref DBName ] ]
+      Family: aurora-postgresql9.6
+      Parameters:
+        auto_explain.log_buffers : 1
+        shared_preload_libraries: auto_explain,pg_stat_statements,pg_hint_plan
+        max_worker_processes: 8
+        work_mem: 262144
+        track_activity_query_size: 16384
+        idle_in_transaction_session_timeout: 7200000
+        statement_timeout: 7200000
+        search_path: '"$user",public,erebate'
+        
+      
+  AuroraDBCluster:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Snapshot
+    Properties:
+      Engine: aurora-postgresql
+      EngineVersion: '9.6'
+      DatabaseName: !If [IsUseDBSnapshot, !Ref "AWS::NoValue", !Ref DBName]
+      Port: 5432
+      MasterUsername:
+        !If [IsUseDBSnapshot, !Ref "AWS::NoValue", !Ref DBUsername]
+      MasterUserPassword:
+        !If [IsUseDBSnapshot, !Ref "AWS::NoValue", !Ref DBPassword]
+      BackupRetentionPeriod: !If [IsProd, 45, 2]
+      DBClusterParameterGroupName: !Ref RDSDBClusterParameterGroup
+      SnapshotIdentifier: !If [IsUseDBSnapshot, !Ref DBSnapshotName, !Ref "AWS::NoValue"]
+      StorageEncrypted: true
+      Tags:
+        -
+          Key: Name
+          Value: !Join [ "-", [ !Ref Name, "Aurora PG Cluster" ] ]
+        -
+          Key: Environment
+          Value: !Ref Environment
+        -
+          Key: Application
+          Value: !Ref Application
+        -
+          Key: ApplicationVersion
+          Value: !Ref ApplicationVersion
+        -
+          Key: InfrastructureVersion
+          Value: !Ref InfrastructureVersion
+        -
+          Key: Tier
+          Value: !Ref Tier
+        -
+          Key: ProjectCostCenter
+          Value: !Ref ProjectCostCenter
+        -
+          Key: OperatingCostCenter
+          Value: !Ref OperatingCostCenter
+        -
+          Key: Owner
+          Value: !Ref Owner
+        -
+          Key: SecurityContact
+          Value: !Ref SecurityContact
+        -
+          Key: Confidentiality
+          Value: !Ref Confidentiality
+        -
+          Key: Compliance
+          Value: !Ref Compliance
+
+          
+  AuroraDBFirstInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      CopyTagsToSnapshot: true  
+      DBInstanceClass:
+        Ref: DBClass
+      DBClusterIdentifier: !Ref AuroraDBCluster  
+      Engine: aurora-postgresql
+      EngineVersion: '9.6'
+      DBParameterGroupName:
+        Ref: DBParamGroup
+      MonitoringInterval: !If [IsProd, 1, 0] 
+      PubliclyAccessible: false
+      Tags:
+        -
+          Key: Name
+          Value: !Join [ "-", [ !Ref Name, "Aurora PG DB 1" ] ]
+        -
+          Key: Environment
+          Value: !Ref Environment
+        -
+          Key: Application
+          Value: !Ref Application
+        -
+          Key: ApplicationVersion
+          Value: !Ref ApplicationVersion
+        -
+          Key: InfrastructureVersion
+          Value: !Ref InfrastructureVersion
+        -
+          Key: Tier
+          Value: !Ref Tier
+        -
+          Key: ProjectCostCenter
+          Value: !Ref ProjectCostCenter
+        -
+          Key: OperatingCostCenter
+          Value: !Ref OperatingCostCenter
+        -
+          Key: Owner
+          Value: !Ref Owner
+        -
+          Key: Confidentiality
+          Value: !Ref Confidentiality
+        -
+          Key: Compliance
+          Value: !Ref Compliance
+
+  AuroraDBSecondInstance:
+    Condition: Replica
+    Type: AWS::RDS::DBInstance
+    Properties:
+      CopyTagsToSnapshot: true  
+      DBInstanceClass:
+        Ref: DBClass
+      DBClusterIdentifier: !Ref AuroraDBCluster  
+      Engine: aurora-postgresql
+      EngineVersion: '9.6'
+      DBParameterGroupName:
+        Ref: DBParamGroup
+      MonitoringInterval: !If [IsProd, 1, 0] 
+      PubliclyAccessible: false
+      Tags:
+        -
+          Key: Name
+          Value: !Join [ "-", [ !Ref Name, "Aurora PG DB 2" ] ]
+        -
+          Key: Environment
+          Value: !Ref Environment
+        -
+          Key: Application
+          Value: !Ref Application
+        -
+          Key: ApplicationVersion
+          Value: !Ref ApplicationVersion
+        -
+          Key: InfrastructureVersion
+          Value: !Ref InfrastructureVersion
+        -
+          Key: Tier
+          Value: !Ref Tier
+        -
+          Key: ProjectCostCenter
+          Value: !Ref ProjectCostCenter
+        -
+          Key: OperatingCostCenter
+          Value: !Ref OperatingCostCenter
+        -
+          Key: Owner
+          Value: !Ref Owner
+        -
+          Key: Confidentiality
+          Value: !Ref Confidentiality
+        -
+          Key: Compliance
+          Value: !Ref Compliance
+
+
+#### Outputs ####################################################################################################
+Outputs:
+  RDSHost:
+    Description: 'eRebate RDS Instance Name'
+    Value: !GetAtt 'AuroraDBCluster.Endpoint.Address' 
+    Export:
+      Name: !Sub '${Environment}-${Name}-${DBName}-AuroraPG'

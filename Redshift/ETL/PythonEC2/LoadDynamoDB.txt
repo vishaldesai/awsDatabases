@@ -1,0 +1,49 @@
+aws dynamodb batch-write-item --request-items file:///Users/xxxx/Downloads/redshift_load_items.json
+ 
+ 
+redshift_load_items.json
+ 
+{
+    "redshift_load_queue": [
+        {
+            "PutRequest": {
+                "Item": {
+                    "queue_name": {"S": "snow" },
+                    "queue_utc_ts": {"N": 1525541960592 },
+                    "src_table": {"S": "table1" },
+                    "s3_path": {"S": "s3://XXX/ETL/snow/incident/ingest_dt=20180501"}
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                 "Item": {
+                    "queue_name": {"S": "snow" },
+                    "queue_utc_ts": {"N": 1525541996841 },
+                    "src_table": {"S": "table1" },
+                    "s3_path": {"S": "s3://XXX/ETL/snow/incident/ingest_dt=20180502"}
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                 "Item": {
+                    "queue_name": {"S": "snow" },
+                    "queue_utc_ts": {"N": 1525541983826 },
+                    "src_table": {"S": "table2" },
+                    "s3_path": {"S": "s3://XXX/ETL/snow/incident_sla/ingest_dt=20180501"}
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                 "Item": {
+                    "queue_name": {"S": "snow" },
+                    "queue_utc_ts": {"N": 1525542033402 },
+                    "src_table": {"S": "table2" },
+                    "s3_path": {"S": "s3://XXX/ETL/snow/incident_sla/ingest_dt=20180502"}
+                }
+            }
+        }
+    ]
+}

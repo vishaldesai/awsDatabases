@@ -1,0 +1,82 @@
+[
+    {
+        "ParameterKey": "EnvName",
+        "ParameterValue": "dev"
+    },
+    {
+        "ParameterKey": "SubnetIds",
+        "ParameterValue": "subnet-xxxx,subnet-xxxx"
+    },
+    {
+        "ParameterKey": "auroraloadfroms3role",
+        "ParameterValue": "arn:aws:iam::xxxxxx:role/rds-role"
+    },
+    {
+        "ParameterKey": "auroraselectintos3role",
+        "ParameterValue": "arn:aws:iam::xxxxxx:role/rds-role"
+    },
+    {
+        "ParameterKey": "awsdefaults3role",
+        "ParameterValue": "arn:aws:iam::xxxx:role/rds-role"
+    },
+    {
+        "ParameterKey": "Family",
+        "ParameterValue": "aurora-mysql5.7"
+    },
+    {
+        "ParameterKey": "DBInstanceClass",
+        "ParameterValue": "db.t2.small"
+    },
+    {
+        "ParameterKey": "Port",
+        "ParameterValue": "3306"
+    },
+    {
+        "ParameterKey": "BackupRetentionPeriod",
+        "ParameterValue": "2"
+    },
+    {
+        "ParameterKey": "MasterUsername",
+        "ParameterValue": "master"
+    },
+    {
+        "ParameterKey": "MasterUserPassword",
+        "ParameterValue": "xxxx"
+    },
+    {
+        "ParameterKey": "PreferredBackupWindow",
+        "ParameterValue": "05:05-05:35"
+    },
+    {
+        "ParameterKey": "PreferredMaintenanceWindow",
+        "ParameterValue": "sun:06:00-sun:06:30"
+    },
+    {
+        "ParameterKey": "SnapshotIdentifier",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "DatabaseName",
+        "ParameterValue": "vishal"
+    },
+    {
+        "ParameterKey": "EngineVersion",
+        "ParameterValue": "5.7.12"
+    },
+    {
+        "ParameterKey": "DBInstanceIdentifier",
+        "ParameterValue": "mysql-dev-cl02"
+    },
+    {
+        "ParameterKey": "DBClusterIdentifier",
+        "ParameterValue": "mysql-dev-cl02-cluster"
+    },
+    {
+        "ParameterKey": "KmsKeyId",
+        "ParameterValue": "arn:aws:kms:us-east-1:xxxxx:key/xxxxx"
+    },
+    {
+        "ParameterKey": "VpcSecurityGroupIds",
+        "ParameterValue": "sg-xxxx,sg-xxxx,sg-xxxx"
+    }
+]

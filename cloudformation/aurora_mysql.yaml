@@ -1,0 +1,163 @@
+---
+
+  Description: Aurora MySQL Stack
+  
+  Parameters:
+
+    EnvName:
+      Type: String
+      Default: __ENV_NAME__
+      Description: Environment Name
+    # Subnet groups parameters
+    SubnetIds:
+      Type: List<String>
+      Default: __SN_PERSISTENT_PRIVATE_SUBNET__
+      Description: Aurora MySQL cluster subnet IDs
+    # Cluster parameter group parmaeters
+    auroraloadfroms3role:
+      Type: String
+      Default: __AU_MYSQL_CPG_LOADS3ROLE__
+      Description: Aurora MySQL load from S3 role
+    auroraselectintos3role:
+      Type: String
+      Default: __AU_MYSQL_CPG_SELECTS3ROLE__
+      Description: Aurora MySQL Select into S3 role
+    awsdefaults3role:
+      Type: String
+      Default: __AU_MYSQL_CPG_DEFAULTS3ROLE__
+      Description: Aurora MySQL default S3 role
+    # Parameter group
+    Family:
+      Type: String
+      Default: __AU_MYSQL_PG_FAMILY__
+      Description: Aurora MySQL family
+    # MySQL database parameters
+    DBInstanceClass:
+      Type: String
+      Default: __AU_MYSQL_DBINSTANCECLASS__
+      Description: Aurora MySQL DB Instance class
+    Port:
+      Type: String
+      Default: __AU_MYSQL_PORT__
+      Description: Aurora MySQL DB Port
+    BackupRetentionPeriod:
+      Type: String
+      Default: __AU_MYSQL_BACKUP_RETENTION__
+      Description: Aurora MySQL Backup Retention
+    MasterUsername:
+      Type: String
+      Default: __AU_MYSQL_MASTER_USERNAME__
+      Description: Aurora MySQL master username
+    MasterUserPassword:
+      Type: String
+      Default: __AU_MYSQL_MASTER_PASSWORD__
+      Description: Aurora MySQL master password  
+    PreferredBackupWindow:
+      Type: String
+      Default: __AU_MYSQL_BACKUP_WINDOW__
+      Description: Aurora MySQL preferred backup window
+    PreferredMaintenanceWindow:
+      Type: String
+      Default: __AU_MYSQL_MAINTENANCE_WINDOW__
+      Description: Aurora MySQL preferred maintenance window 
+    DatabaseName:
+      Type: String
+      Default: __AU_MYSQL_DATABASENAME__
+      Description: Aurora MySQL database name
+    EngineVersion:
+      Type: String
+      Default: __AU_MYSQL_VERSION__
+      Description: Aurora MySQL engine version
+    VpcSecurityGroupIds:
+      Type: List<String>
+      Default: __SG_ALL_INBOUND_BASTIONS_PERSISTENT__,_SG_DATABASE_VPC_ACCESS__
+      Description: Aurora MySQL Cluster security groups
+    DBInstanceIdentifier:
+      Type: String
+      Default: __AU_MYSQL_DB_INSTANCE_IDENTIFIER__
+      Description: Aurora MySQL database instance identifier
+    DBClusterIdentifier:
+      Type: String
+      Default: __AU_MYSQL_DB_CLUSTER_IDENTIFIER__
+      Description: Aurora MySQL cluster identifier
+    KmsKeyId:
+      Type: String
+      Default: __KMS_KEY__
+      Description: Aurora MySQL engine version
+    SnapshotIdentifier:
+      Type: String
+      Default: _AU_MYSQL_SNAPSHOT_IDENTIFIER__
+      Description: Aurora MySQL snapshot identifier
+
+  Conditions:
+    ## IsUseDBSnapshot: !Equals [!Ref UseDBSnapshot, 'true']
+    IsUseDBSnapshot: !Not [!Equals [!Ref SnapshotIdentifier, ""]]
+  Resources:
+    AUMySQLSg:
+      Type: AWS::RDS::DBSubnetGroup
+      Properties:
+        DBSubnetGroupDescription: Aurora MySQL DB Subnet Group
+        SubnetIds: !Ref SubnetIds
+        Tags:
+          - Key: name
+            Value: aurora-mysql-sg
+          - Key: environment
+            Value: !Ref EnvName
+          - Key: tier
+            Value: data
+          - Key: group
+            Value: ana
+    AUMySQLCpg: 
+      Type: AWS::RDS::DBClusterParameterGroup
+      Properties:
+        Description: Aurora MySQL cluster parameter group
+        Family: !Ref Family
+        Parameters: 
+          aurora_load_from_s3_role: !Ref auroraloadfroms3role
+          aurora_select_into_s3_role: !Ref auroraselectintos3role
+          aws_default_s3_role: !Ref awsdefaults3role
+    AUMySQLPg:
+      Type: AWS::RDS::DBParameterGroup
+      Properties:
+        Description: Aurora MySQL parameter group
+        Family: !Ref Family
+    AUMySQLCl:
+      Type: AWS::RDS::DBCluster
+      DeletionPolicy: Snapshot
+      Properties:
+        MasterUsername: !Ref MasterUsername
+        MasterUserPassword: !Ref MasterUserPassword
+        Engine: aurora-mysql
+        EngineVersion: !Ref EngineVersion
+        Port: !Ref Port
+        DBClusterIdentifier: !Ref DBClusterIdentifier
+        DatabaseName: !Ref DatabaseName
+        DBSubnetGroupName: !Ref AUMySQLSg
+        StorageEncrypted: 'true'
+        KmsKeyId: !Ref KmsKeyId
+        DBClusterParameterGroupName: !Ref AUMySQLCpg
+        VpcSecurityGroupIds: !Ref VpcSecurityGroupIds
+        PreferredBackupWindow: !Ref PreferredBackupWindow
+        PreferredMaintenanceWindow: !Ref PreferredMaintenanceWindow
+        BackupRetentionPeriod: !Ref BackupRetentionPeriod
+        SnapshotIdentifier: !If [IsUseDBSnapshot, !Ref SnapshotIdentifier, !Ref "AWS::NoValue"]
+    AUMySQLInst:
+      Type: AWS::RDS::DBInstance
+      Properties:
+        CopyTagsToSnapshot: 'true'
+        Engine: aurora-mysql
+        EngineVersion: !Ref EngineVersion
+        DBClusterIdentifier: !Ref AUMySQLCl
+        DBInstanceClass: !Ref DBInstanceClass     
+        DBSubnetGroupName: !Ref AUMySQLSg
+        DBParameterGroupName: !Ref AUMySQLPg
+        DBInstanceIdentifier: !Ref DBInstanceIdentifier
+        Tags:
+          - Key: name
+            Value: aurora-mysql-db
+          - Key: environment
+            Value: !Ref EnvName
+          - Key: tier
+            Value: data
+          - Key: group
+            Value: ana
